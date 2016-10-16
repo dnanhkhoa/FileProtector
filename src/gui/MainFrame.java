@@ -1,11 +1,9 @@
-package ui;
+package gui;
 
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.Observable;
 import java.util.Observer;
@@ -16,6 +14,7 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
@@ -28,10 +27,14 @@ import com.jgoodies.forms.layout.FormLayout;
 import com.jgoodies.forms.layout.FormSpecs;
 import com.jgoodies.forms.layout.RowSpec;
 
-import algorithm.AlgorithmEnum;
-import algorithm.ModeOfOperationEnum;
-import algorithm.PaddingModeEnum;
+import algorithm.AES;
+import algorithm.DES;
+import algorithm.RC2;
+import algorithm.TripleDES;
 import core.Processor;
+import enums.AlgorithmEnum;
+import enums.ModeOfOperationEnum;
+import enums.PaddingModeEnum;
 import structure.ProcessInfo;
 
 public class MainFrame extends JFrame implements Observer {
@@ -41,9 +44,16 @@ public class MainFrame extends JFrame implements Observer {
     private JTextField        txtInputFile;
     private JTextField        txtOutputFile;
     private JPasswordField    txtPassword;
+    private JComboBox         cbbAlgorithm;
+    private JComboBox         cbbModeOfOperation;
+    private JComboBox         cbbPaddingMode;
+    private JButton           btnDo;
+    private JProgressBar      pbProcessInfo;
+    private JLabel            lblTimeLeftInfo;
 
     private Processor         processor;
     private boolean           isRunning;
+    private boolean           isEncryptMode;
 
     /**
      * Launch the application.
@@ -71,13 +81,10 @@ public class MainFrame extends JFrame implements Observer {
      * Create the frame.
      */
     public MainFrame() {
-        // Initialize variables
-        initialize();
-
         // Initialize form
         setResizable(false);
         setTitle("File Protector");
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 500, 350);
         mainPane = new JPanel();
         mainPane.setFont(new Font("Tahoma", Font.PLAIN, 14));
@@ -149,7 +156,7 @@ public class MainFrame extends JFrame implements Observer {
         lblAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 14));
         filePane.add(lblAlgorithm, "1, 5, right, default");
 
-        JComboBox cbbAlgorithm = new JComboBox();
+        cbbAlgorithm = new JComboBox();
         cbbAlgorithm.setFocusable(false);
         cbbAlgorithm.setModel(new DefaultComboBoxModel(AlgorithmEnum.values()));
         cbbAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 14));
@@ -159,7 +166,7 @@ public class MainFrame extends JFrame implements Observer {
         lblModeOfOperation.setFont(new Font("Tahoma", Font.PLAIN, 14));
         filePane.add(lblModeOfOperation, "1, 7, right, default");
 
-        JComboBox cbbModeOfOperation = new JComboBox();
+        cbbModeOfOperation = new JComboBox();
         cbbModeOfOperation.setFocusable(false);
         cbbModeOfOperation.setModel(new DefaultComboBoxModel(ModeOfOperationEnum.values()));
         cbbModeOfOperation.setFont(new Font("Tahoma", Font.PLAIN, 14));
@@ -169,7 +176,7 @@ public class MainFrame extends JFrame implements Observer {
         lblPaddingMode.setFont(new Font("Tahoma", Font.PLAIN, 14));
         filePane.add(lblPaddingMode, "1, 9, right, default");
 
-        JComboBox cbbPaddingMode = new JComboBox();
+        cbbPaddingMode = new JComboBox();
         cbbPaddingMode.setFocusable(false);
         cbbPaddingMode.setModel(new DefaultComboBoxModel(PaddingModeEnum.values()));
         cbbPaddingMode.setFont(new Font("Tahoma", Font.PLAIN, 14));
@@ -197,11 +204,11 @@ public class MainFrame extends JFrame implements Observer {
         lblTimeLeft.setFont(new Font("Tahoma", Font.PLAIN, 14));
         infoPane.add(lblTimeLeft, "1, 1");
 
-        JLabel lblTimeLeftInfo = new JLabel("00:00:00");
+        lblTimeLeftInfo = new JLabel("00:00:00");
         lblTimeLeftInfo.setFont(new Font("Tahoma", Font.PLAIN, 14));
         infoPane.add(lblTimeLeftInfo, "3, 1");
 
-        JButton btnDo = new JButton("Do");
+        btnDo = new JButton("Encrypt");
         btnDo.setFocusable(false);
         btnDo.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -212,36 +219,35 @@ public class MainFrame extends JFrame implements Observer {
         btnDo.setFont(new Font("Tahoma", Font.PLAIN, 14));
         infoPane.add(btnDo, "5, 1, 1, 3");
 
-        JProgressBar pbProcessInfo = new JProgressBar();
+        pbProcessInfo = new JProgressBar();
         pbProcessInfo.setFont(new Font("Tahoma", Font.PLAIN, 14));
         infoPane.add(pbProcessInfo, "1, 3, 3, 1");
 
-        // Add events
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                handleWindowClosing();
-            }
-        });
+        // Initialize variables
+        initialize();
     }
 
     public void initialize() {
         processor = new Processor();
+        processor.registerAlgorithm(new AES());
+        processor.registerAlgorithm(new DES());
+        processor.registerAlgorithm(new TripleDES());
+        processor.registerAlgorithm(new RC2());
         processor.registerObserver(this);
-        
-        isRunning = false;
-    }
 
-    public void handleWindowClosing() {
-        System.exit(0);
+        isRunning = false;
+        changeMode(false);
     }
 
     public void handleInputFileButton() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Open file");
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            txtInputFile.setText(fileChooser.getSelectedFile().toString());
+            File selectedFile = fileChooser.getSelectedFile();
+            txtInputFile.setText(selectedFile.toString());
             txtOutputFile.setText(txtInputFile.getText() + ".enc");
+            // Check file
+            changeMode(!processor.isEncryptedFile(selectedFile));
         }
     }
 
@@ -255,6 +261,30 @@ public class MainFrame extends JFrame implements Observer {
     }
 
     public void handleDoButton() {
+        if (isRunning) {
+            JOptionPane.showMessageDialog(this, "Process is running!");
+        } else {
+            if (isEncryptMode) {
+
+            } else {
+
+            }
+        }
+    }
+
+    public void changeMode(boolean isEncryptMode) {
+        this.isEncryptMode = isEncryptMode;
+        if (isEncryptMode) {
+            cbbAlgorithm.setEnabled(true);
+            cbbModeOfOperation.setEnabled(true);
+            cbbPaddingMode.setEnabled(true);
+            btnDo.setText("Encrypt");
+        } else {
+            cbbAlgorithm.setEnabled(false);
+            cbbModeOfOperation.setEnabled(false);
+            cbbPaddingMode.setEnabled(false);
+            btnDo.setText("Decrypt");
+        }
     }
 
     @Override
