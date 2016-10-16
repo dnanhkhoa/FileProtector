@@ -29,31 +29,28 @@ import com.jgoodies.forms.layout.RowSpec;
 
 import algorithm.AES;
 import algorithm.DES;
-import algorithm.RC2;
-import algorithm.TripleDES;
 import core.Processor;
 import enums.AlgorithmEnum;
 import enums.ModeOfOperationEnum;
 import enums.PaddingModeEnum;
-import structure.ProcessInfo;
+import structure.ProgressInfo;
 
 public class MainFrame extends JFrame implements Observer {
 
-    private static final long serialVersionUID = 1L;
-    private JPanel            mainPane;
-    private JTextField        txtInputFile;
-    private JTextField        txtOutputFile;
-    private JPasswordField    txtPassword;
-    private JComboBox         cbbAlgorithm;
-    private JComboBox         cbbModeOfOperation;
-    private JComboBox         cbbPaddingMode;
-    private JButton           btnDo;
-    private JProgressBar      pbProcessInfo;
-    private JLabel            lblTimeLeftInfo;
+    private static final long              serialVersionUID = 1L;
+    private JPanel                         mainPane;
+    private JTextField                     txtInputFile;
+    private JTextField                     txtOutputFile;
+    private JPasswordField                 txtPassword;
+    private JComboBox<AlgorithmEnum>       cbbAlgorithm;
+    private JComboBox<ModeOfOperationEnum> cbbModeOfOperation;
+    private JComboBox<PaddingModeEnum>     cbbPaddingMode;
+    private JButton                        btnDo;
+    private JProgressBar                   pbProcessInfo;
+    private JLabel                         lblTimeLeftInfo;
 
-    private Processor         processor;
-    private boolean           isRunning;
-    private boolean           isEncryptMode;
+    private Processor                      processor;
+    private boolean                        isRunning;
 
     /**
      * Launch the application.
@@ -156,9 +153,9 @@ public class MainFrame extends JFrame implements Observer {
         lblAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 14));
         filePane.add(lblAlgorithm, "1, 5, right, default");
 
-        cbbAlgorithm = new JComboBox();
+        cbbAlgorithm = new JComboBox<AlgorithmEnum>();
         cbbAlgorithm.setFocusable(false);
-        cbbAlgorithm.setModel(new DefaultComboBoxModel(AlgorithmEnum.values()));
+        cbbAlgorithm.setModel(new DefaultComboBoxModel<AlgorithmEnum>(AlgorithmEnum.values()));
         cbbAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 14));
         filePane.add(cbbAlgorithm, "3, 5, 3, 1, fill, default");
 
@@ -166,9 +163,9 @@ public class MainFrame extends JFrame implements Observer {
         lblModeOfOperation.setFont(new Font("Tahoma", Font.PLAIN, 14));
         filePane.add(lblModeOfOperation, "1, 7, right, default");
 
-        cbbModeOfOperation = new JComboBox();
+        cbbModeOfOperation = new JComboBox<ModeOfOperationEnum>();
         cbbModeOfOperation.setFocusable(false);
-        cbbModeOfOperation.setModel(new DefaultComboBoxModel(ModeOfOperationEnum.values()));
+        cbbModeOfOperation.setModel(new DefaultComboBoxModel<ModeOfOperationEnum>(ModeOfOperationEnum.values()));
         cbbModeOfOperation.setFont(new Font("Tahoma", Font.PLAIN, 14));
         filePane.add(cbbModeOfOperation, "3, 7, 3, 1, fill, default");
 
@@ -176,9 +173,9 @@ public class MainFrame extends JFrame implements Observer {
         lblPaddingMode.setFont(new Font("Tahoma", Font.PLAIN, 14));
         filePane.add(lblPaddingMode, "1, 9, right, default");
 
-        cbbPaddingMode = new JComboBox();
+        cbbPaddingMode = new JComboBox<PaddingModeEnum>();
         cbbPaddingMode.setFocusable(false);
-        cbbPaddingMode.setModel(new DefaultComboBoxModel(PaddingModeEnum.values()));
+        cbbPaddingMode.setModel(new DefaultComboBoxModel<PaddingModeEnum>(PaddingModeEnum.values()));
         cbbPaddingMode.setFont(new Font("Tahoma", Font.PLAIN, 14));
         filePane.add(cbbPaddingMode, "3, 9, 3, 1, fill, default");
 
@@ -231,12 +228,10 @@ public class MainFrame extends JFrame implements Observer {
         processor = new Processor();
         processor.registerAlgorithm(new AES());
         processor.registerAlgorithm(new DES());
-        processor.registerAlgorithm(new TripleDES());
-        processor.registerAlgorithm(new RC2());
         processor.registerObserver(this);
 
-        isRunning = false;
-        changeMode(false);
+        changeState(false);
+        changeMode(true);
     }
 
     public void handleInputFileButton() {
@@ -248,6 +243,8 @@ public class MainFrame extends JFrame implements Observer {
             txtOutputFile.setText(txtInputFile.getText() + ".enc");
             // Check file
             changeMode(!processor.isEncryptedFile(selectedFile));
+            // Reset progress info
+            clearProgressInfo();
         }
     }
 
@@ -264,16 +261,25 @@ public class MainFrame extends JFrame implements Observer {
         if (isRunning) {
             JOptionPane.showMessageDialog(this, "Process is running!");
         } else {
-            if (isEncryptMode) {
+            try {
+                changeState(true);
 
-            } else {
-
+                if (txtInputFile.getText().isEmpty() || txtOutputFile.getText().isEmpty()
+                        || txtPassword.getPassword().length == 0) {
+                    JOptionPane.showMessageDialog(this, "Some required fields have not been entered!");
+                } else {
+                    processor.process(new File(txtInputFile.getText()), new File(txtOutputFile.getText()),
+                            String.valueOf(txtPassword.getPassword()), (AlgorithmEnum) cbbAlgorithm.getSelectedItem(),
+                            (ModeOfOperationEnum) cbbModeOfOperation.getSelectedItem(),
+                            (PaddingModeEnum) cbbPaddingMode.getSelectedItem());
+                }
+            } finally {
+                changeState(false);
             }
         }
     }
 
     public void changeMode(boolean isEncryptMode) {
-        this.isEncryptMode = isEncryptMode;
         if (isEncryptMode) {
             cbbAlgorithm.setEnabled(true);
             cbbModeOfOperation.setEnabled(true);
@@ -287,11 +293,22 @@ public class MainFrame extends JFrame implements Observer {
         }
     }
 
+    public void changeState(boolean isRunning) {
+        this.isRunning = isRunning;
+        btnDo.setEnabled(!isRunning);
+    }
+
+    public void clearProgressInfo() {
+        lblTimeLeftInfo.setText("00:00:00");
+        pbProcessInfo.setValue(0);
+    }
+
     @Override
     public void update(Observable o, Object arg) {
-        if (arg instanceof ProcessInfo) {
-            ProcessInfo processInfo = (ProcessInfo) arg;
-
+        if (arg instanceof ProgressInfo) {
+            ProgressInfo processInfo = (ProgressInfo) arg;
+            lblTimeLeftInfo.setText(processInfo.getTimeLeft());
+            pbProcessInfo.setValue(processInfo.getProgressValue());
         }
     }
 

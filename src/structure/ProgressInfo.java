@@ -1,12 +1,12 @@
 package structure;
 
-public final class ProcessInfo {
+public final class ProgressInfo {
 
     private int total;
     private int current;
     private int secondLeft;
 
-    public ProcessInfo() {
+    public ProgressInfo() {
         reset();
     }
 
@@ -41,7 +41,14 @@ public final class ProcessInfo {
     }
 
     public int getProgressValue() {
-        return total > 0 ? current / total : 0;
+        return total > 0 ? current * 100 / total : 0;
+    }
+
+    public String getTimeLeft() {
+        int hours = secondLeft / 3600;
+        int minutes = (secondLeft % 3600) / 60;
+        int seconds = (secondLeft % 3600) % 60;
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 
 }

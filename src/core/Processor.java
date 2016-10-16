@@ -4,8 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.util.HashMap;
@@ -14,20 +12,24 @@ import java.util.Observable;
 import java.util.Observer;
 
 import algorithm.BaseEncryptionAlgorithm;
+import enums.AlgorithmEnum;
+import enums.ModeOfOperationEnum;
+import enums.PaddingModeEnum;
 import structure.HeaderInfo;
-import structure.ProcessInfo;
+import structure.ProgressInfo;
 
 public final class Processor {
 
     private final static String                        SIGNATURE  = "ENC";
     private final static int                           BLOCK_SIZE = 512;
+
     private final Map<String, BaseEncryptionAlgorithm> algorithmMap;
-    private final ProcessInfo                          processInfo;
+    private final ProgressInfo                         progressInfo;
     private final Observable                           observable;
 
     public Processor() {
         this.algorithmMap = new HashMap<>();
-        this.processInfo = new ProcessInfo();
+        this.progressInfo = new ProgressInfo();
         this.observable = new Observable();
     }
 
@@ -47,7 +49,8 @@ public final class Processor {
 
     }
 
-    public void process(File inFile, File outFile) throws FileNotFoundException, IOException {
+    public void process(File inFile, File outFile, String password, AlgorithmEnum algorithm,
+            ModeOfOperationEnum modeOfOperation, PaddingModeEnum paddingMode) {
         try (InputStream inputStream = new FileInputStream(inFile)) {
             try (DataInputStream dataInputStream = new DataInputStream(inputStream)) {
                 // Code here
@@ -59,6 +62,8 @@ public final class Processor {
                  * Code here } }
                  */
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

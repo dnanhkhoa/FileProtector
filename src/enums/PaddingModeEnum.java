@@ -1,5 +1,5 @@
 package enums;
 
 public enum PaddingModeEnum {
-    X923, PKCS7, ISO10126
+    PKCS5Padding, ISO10126Padding
 }
