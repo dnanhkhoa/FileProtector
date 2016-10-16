@@ -2,9 +2,9 @@ package structure;
 
 public final class ProgressInfo {
 
-    private int total;
-    private int current;
-    private int secondLeft;
+    private long total;
+    private long current;
+    private long secondLeft;
 
     public ProgressInfo() {
         reset();
@@ -16,38 +16,38 @@ public final class ProgressInfo {
         secondLeft = 0;
     }
 
-    public int getTotal() {
+    public long getTotal() {
         return total;
     }
 
-    public void setTotal(int total) {
+    public void setTotal(long total) {
         this.total = total;
     }
 
-    public int getCurrent() {
+    public long getCurrent() {
         return current;
     }
 
-    public void setCurrent(int current) {
+    public void setCurrent(long current) {
         this.current = current;
     }
 
-    public int getSecondLeft() {
+    public long getSecondLeft() {
         return secondLeft;
     }
 
-    public void setSecondLeft(int secondLeft) {
+    public void setSecondLeft(long secondLeft) {
         this.secondLeft = secondLeft;
     }
 
     public int getProgressValue() {
-        return total > 0 ? current * 100 / total : 0;
+        return (int) (total > 0 ? current * 100 / total : 0);
     }
 
     public String getTimeLeft() {
-        int hours = secondLeft / 3600;
-        int minutes = (secondLeft % 3600) / 60;
-        int seconds = (secondLeft % 3600) % 60;
+        long hours = secondLeft / 3600;
+        long minutes = (secondLeft % 3600) / 60;
+        long seconds = (secondLeft % 3600) % 60;
         return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 

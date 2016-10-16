@@ -1,6 +1,13 @@
 package algorithm;
 
-import java.util.Map;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 import enums.ModeOfOperationEnum;
 import enums.PaddingModeEnum;
@@ -15,11 +22,10 @@ public abstract class BaseEncryptionAlgorithm {
         return getClass().getSimpleName();
     }
 
-    public abstract Map<String, Object> buildConfig(byte[] key, ModeOfOperationEnum modeOfOperation,
-            PaddingModeEnum paddingMode);
+    public abstract Cipher buildCipher(byte[] key, ModeOfOperationEnum modeOfOperation, PaddingModeEnum paddingMode,
+            byte[] iv, boolean isEncryptMode) throws NoSuchAlgorithmException, NoSuchPaddingException,
+            InvalidKeyException, InvalidAlgorithmParameterException;
 
-    public abstract byte[] encrypt(byte[] data);
-
-    public abstract byte[] decrypt(byte[] data);
+    public abstract byte[] doFinal(byte[] data, Cipher cipher) throws IllegalBlockSizeException, BadPaddingException;
 
 }

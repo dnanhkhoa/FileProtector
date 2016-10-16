@@ -1,6 +1,16 @@
 package algorithm;
 
-import java.util.Map;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import enums.ModeOfOperationEnum;
 import enums.PaddingModeEnum;
@@ -12,22 +22,29 @@ public final class AES extends BaseEncryptionAlgorithm {
     }
 
     @Override
-    public Map<String, Object> buildConfig(byte[] key, ModeOfOperationEnum modeOfOperation,
-            PaddingModeEnum paddingMode) {
-        // TODO Auto-generated method stub
-        return null;
+    public Cipher buildCipher(byte[] key, ModeOfOperationEnum modeOfOperation, PaddingModeEnum paddingMode, byte[] iv,
+            boolean isEncryptMode) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
+            InvalidAlgorithmParameterException {
+
+        Cipher cipher = Cipher.getInstance(String.format("%s/%s/%s", getName(), modeOfOperation, paddingMode));
+
+        if (iv == null) {
+            iv = new byte[cipher.getBlockSize()];
+            SecureRandom randomSecureRandom = new SecureRandom();
+            randomSecureRandom.nextBytes(iv);
+        }
+
+        if (isEncryptMode) {
+            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, getName()), new IvParameterSpec(iv));
+        } else {
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, getName()), new IvParameterSpec(iv));
+        }
+
+        return cipher;
     }
 
     @Override
-    public byte[] encrypt(byte[] data) {
-        // TODO Auto-generated method stub
-        return null;
+    public byte[] doFinal(byte[] data, Cipher cipher) throws IllegalBlockSizeException, BadPaddingException {
+        return cipher.doFinal(data);
     }
-
-    @Override
-    public byte[] decrypt(byte[] data) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
 }

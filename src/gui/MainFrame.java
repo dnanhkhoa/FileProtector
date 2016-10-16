@@ -2,6 +2,7 @@ package gui;
 
 import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -228,6 +229,7 @@ public class MainFrame extends JFrame implements Observer {
         processor = new Processor();
         processor.registerAlgorithm(new AES());
         processor.registerAlgorithm(new DES());
+
         processor.registerObserver(this);
 
         changeState(false);
@@ -240,9 +242,16 @@ public class MainFrame extends JFrame implements Observer {
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
             txtInputFile.setText(selectedFile.toString());
-            txtOutputFile.setText(txtInputFile.getText() + ".enc");
+
+            boolean isEncryptedMode = processor.isEncryptedFile(selectedFile);
+            if (isEncryptedMode) {
+                txtOutputFile.setText(txtInputFile.getText().replace(".enc", "") + ".dec");
+            } else {
+                txtOutputFile.setText(txtInputFile.getText() + ".enc");
+            }
+
             // Check file
-            changeMode(!processor.isEncryptedFile(selectedFile));
+            changeMode(!isEncryptedMode);
             // Reset progress info
             clearProgressInfo();
         }
@@ -261,20 +270,33 @@ public class MainFrame extends JFrame implements Observer {
         if (isRunning) {
             JOptionPane.showMessageDialog(this, "Process is running!");
         } else {
-            try {
-                changeState(true);
+            changeState(true);
 
-                if (txtInputFile.getText().isEmpty() || txtOutputFile.getText().isEmpty()
-                        || txtPassword.getPassword().length == 0) {
-                    JOptionPane.showMessageDialog(this, "Some required fields have not been entered!");
-                } else {
-                    processor.process(new File(txtInputFile.getText()), new File(txtOutputFile.getText()),
-                            String.valueOf(txtPassword.getPassword()), (AlgorithmEnum) cbbAlgorithm.getSelectedItem(),
-                            (ModeOfOperationEnum) cbbModeOfOperation.getSelectedItem(),
-                            (PaddingModeEnum) cbbPaddingMode.getSelectedItem());
-                }
-            } finally {
-                changeState(false);
+            if (txtInputFile.getText().isEmpty() || txtOutputFile.getText().isEmpty()
+                    || txtPassword.getPassword().length == 0) {
+                JOptionPane.showMessageDialog(this, "Some required fields have not been entered!");
+            } else {
+                final Frame component = this;
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            processor.process(new File(txtInputFile.getText()), new File(txtOutputFile.getText()),
+                                    String.valueOf(txtPassword.getPassword()),
+                                    (AlgorithmEnum) cbbAlgorithm.getSelectedItem(),
+                                    (ModeOfOperationEnum) cbbModeOfOperation.getSelectedItem(),
+                                    (PaddingModeEnum) cbbPaddingMode.getSelectedItem());
+
+                            JOptionPane.showMessageDialog(component, "Done!");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            JOptionPane.showMessageDialog(component, e.getMessage());
+                        } finally {
+                            changeState(false);
+                        }
+                    }
+                });
+                thread.start();
             }
         }
     }
